@@ -1,0 +1,1678 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citrus Trading Game</title>
+  <style>
+    :root {
+      --bg: #d7d8dc;
+      --panel: #ffffff;
+      --line: #d4d7dd;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --head-dark: linear-gradient(180deg, #3b4149, #2b3138);
+      --head-light: #b0b7c2;
+      --buy: #7ad6c5;
+      --sell: #f1a79a;
+      --good: #10b981;
+      --bad: #dc2626;
+      --shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+      --radius: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+      font-size: 14px;
+    }
+
+    .app {
+      width: min(1460px, 96vw);
+      margin: 10px auto 16px;
+    }
+
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+
+    .title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      color: #334155;
+      text-transform: uppercase;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab {
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      color: #0f172a;
+      background: #e5e7eb;
+    }
+
+    .tab.active {
+      background: #a7f3d0;
+      color: #064e3b;
+    }
+
+    .tab.locked {
+      background: #e5e7eb;
+      color: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid #cfd5dd;
+    }
+
+    .card-head {
+      color: #f8fafc;
+      font-size: 24px;
+      line-height: 1;
+      padding: 12px 14px;
+      font-weight: 700;
+    }
+
+    .head-dark {
+      background: var(--head-dark);
+    }
+
+    .head-light {
+      background: var(--head-light);
+      color: #1f2937;
+    }
+
+    .card-body {
+      padding: 12px;
+    }
+
+    .table-wrap {
+      max-height: 720px;
+      overflow: auto;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      white-space: nowrap;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f2f4f7;
+      font-weight: 700;
+    }
+
+    .hud-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 14px;
+      margin: 14px 0;
+    }
+
+    .timer-block {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-left: 6px;
+    }
+
+    .timer {
+      font-size: 34px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: #f3e8ff;
+      color: #6b21a8;
+    }
+
+    .status.running {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status.done {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .final-hud {
+      display: none;
+      background: linear-gradient(180deg, #16a34a, #059669);
+      color: #ecfeff;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(5, 150, 105, 0.25);
+      padding: 10px 20px;
+      text-align: center;
+      font-weight: 800;
+      min-width: 300px;
+    }
+
+    .final-hud.loss {
+      background: linear-gradient(180deg, #f43f5e, #dc2626);
+      box-shadow: 0 8px 24px rgba(185, 28, 28, 0.25);
+    }
+
+    .final-hud .small {
+      display: block;
+      font-size: 14px;
+      letter-spacing: 0.3px;
+    }
+
+    .final-hud .big {
+      display: block;
+      margin-top: 2px;
+      font-size: 19px;
+    }
+
+    .quote-box {
+      justify-self: end;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 220px;
+    }
+
+    .quote-box button {
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      color: #f8fafc;
+      font-weight: 800;
+      font-size: 22px;
+      padding: 9px 6px;
+      line-height: 1.1;
+    }
+
+    .quote-box small {
+      display: block;
+      font-size: 11px;
+      opacity: 0.95;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+
+    .quote-buy {
+      background: #7acdbc;
+    }
+
+    .quote-sell {
+      background: #f0a394;
+    }
+
+    .layout-top {
+      display: grid;
+      grid-template-columns: 1.15fr 0.9fr 0.68fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .layout-bottom {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .panel-head {
+      font-size: 23px;
+      font-weight: 700;
+      padding: 10px 14px;
+      line-height: 1;
+    }
+
+    .panel-head.dark {
+      color: #f8fafc;
+      background: var(--head-dark);
+    }
+
+    .panel-head.light {
+      color: #374151;
+      background: var(--head-light);
+    }
+
+    .chart-wrap {
+      padding: 10px;
+      background: #fff;
+      border-top: 1px solid #d5dae2;
+      height: 420px;
+    }
+
+    #priceChart {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .trade-wrap,
+    .markets-wrap,
+    .team-wrap {
+      max-height: 420px;
+      overflow: auto;
+    }
+
+    .team-wrap {
+      max-height: 360px;
+    }
+
+    .locked-text {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .flash-cell {
+      background: #7bd67b;
+      color: #14532d;
+      font-weight: 700;
+    }
+
+    .market-pop td {
+      background: #ecfdf5;
+      animation: marketPulse 0.9s ease;
+    }
+
+    @keyframes marketPulse {
+      from {
+        background: #86efac;
+      }
+      to {
+        background: #ecfdf5;
+      }
+    }
+
+    .btn-mini {
+      border: 0;
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-right: 4px;
+    }
+
+    .btn-mini.buy {
+      background: #9ee5d6;
+      color: #064e3b;
+    }
+
+    .btn-mini.sell {
+      background: #f8c6bc;
+      color: #7f1d1d;
+    }
+
+    .side-buy {
+      color: #166534;
+      font-weight: 700;
+    }
+
+    .side-sell {
+      color: #991b1b;
+      font-weight: 700;
+    }
+
+    .side-settle {
+      color: #1e3a8a;
+      font-weight: 700;
+    }
+
+    .play-again-btn {
+      margin-top: 8px;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+      background: #e2e8f0;
+    }
+
+    .practice-panel {
+      display: none;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0 0 12px;
+    }
+
+    .practice-panel.active {
+      display: grid;
+    }
+
+    .practice-item {
+      background: #ffffff;
+      border: 1px solid #cfd5dd;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 9px 12px;
+      min-width: 0;
+    }
+
+    .practice-item.wide {
+      grid-column: span 2;
+    }
+
+    .practice-item span {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.25px;
+    }
+
+    .practice-item strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 18px;
+      line-height: 1.2;
+      color: #0f172a;
+      word-break: break-word;
+    }
+
+    .practice-item strong.positive {
+      color: #065f46;
+    }
+
+    .practice-item strong.negative {
+      color: #991b1b;
+    }
+
+    .setup-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      background: rgba(15, 23, 42, 0.42);
+      padding: 14px;
+    }
+
+    .setup-overlay.hidden {
+      display: none;
+    }
+
+    .setup-card {
+      width: min(620px, 96vw);
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #cfd5dd;
+      box-shadow: 0 14px 32px rgba(15, 23, 42, 0.28);
+      padding: 18px;
+    }
+
+    .setup-card h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #0f172a;
+    }
+
+    .setup-subtitle {
+      margin: 6px 0 14px;
+      color: #475569;
+      font-size: 14px;
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .setup-field span {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
+    }
+
+    .setup-field input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .setup-mode {
+      margin-top: 12px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      color: #1e293b;
+      font-weight: 700;
+    }
+
+    .setup-mode-label {
+      margin-right: 2px;
+      color: #334155;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+    }
+
+    .setup-mode .option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .setup-mode input {
+      margin-right: 4px;
+    }
+
+    .setup-error {
+      min-height: 20px;
+      margin: 12px 0 10px;
+      color: #b91c1c;
+      font-weight: 700;
+    }
+
+    .setup-start-btn {
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #ecfdf5;
+      background: linear-gradient(180deg, #10b981, #059669);
+    }
+
+    @media (max-width: 1320px) {
+      .layout-top {
+        grid-template-columns: 1fr;
+      }
+
+      .layout-bottom {
+        grid-template-columns: 1fr;
+      }
+
+      .hud-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .quote-box {
+        justify-self: start;
+      }
+
+      th,
+      td {
+        font-size: 13px;
+      }
+
+      .card-head,
+      .panel-head {
+        font-size: 20px;
+      }
+
+      .setup-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .practice-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .practice-item.wide {
+        grid-column: span 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="top-nav">
+      <div class="title">Citrus Multiplier Trading Game</div>
+      <div class="tabs">
+        <button id="historyTab" class="tab active">Past 20 Games</button>
+        <button id="liveTab" class="tab">Live Trading Game</button>
+      </div>
+    </div>
+
+    <section id="historyPage" class="page active">
+      <div class="card">
+        <div class="card-head head-light">20 Past Games</div>
+        <div class="card-body table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Game</th>
+                <th>A Oranges</th>
+                <th>A Lemons</th>
+                <th>B Oranges</th>
+                <th>B Lemons</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="gamePage" class="page">
+      <div class="hud-row">
+        <div class="timer-block">
+          <div id="timer" class="timer">01:00:00</div>
+          <span id="status" class="status">Waiting</span>
+        </div>
+
+        <div id="finalHud" class="final-hud">
+          <span class="small">GAME FINISHED</span>
+          <span id="finalPnlText" class="big">FINAL P&L: +0.0</span>
+          <button id="playAgainBtn" class="play-again-btn" type="button">Play Again</button>
+        </div>
+
+        <div class="quote-box">
+          <button id="buyMultiplier" class="quote-buy"><small>BUY</small><span id="buyPx">-</span></button>
+          <button id="sellMultiplier" class="quote-sell"><small>SELL</small><span id="sellPx">-</span></button>
+        </div>
+      </div>
+
+      <div id="practicePanel" class="practice-panel">
+        <div class="practice-item">
+          <span>Live P&amp;L</span>
+          <strong id="practiceLivePnl">+0.0</strong>
+        </div>
+        <div class="practice-item">
+          <span>Multiplier Position</span>
+          <strong id="practiceMultiplierPos">0</strong>
+        </div>
+        <div class="practice-item wide">
+          <span>Open Side Positions</span>
+          <strong id="practiceSidePositions">None</strong>
+        </div>
+      </div>
+
+      <div class="layout-top">
+        <section class="card">
+          <div class="panel-head dark">Markets</div>
+          <div class="card-body markets-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Instrument</th>
+                  <th>Expiry</th>
+                  <th>Price</th>
+                  <th>Trade</th>
+                </tr>
+              </thead>
+              <tbody id="marketsBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="panel-head light">Trades</div>
+          <div class="card-body trade-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Instrument</th>
+                  <th>Side</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                  <th>Executed At</th>
+                </tr>
+              </thead>
+              <tbody id="tradesBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="panel-head light">Multiplier Market Price</div>
+          <div class="chart-wrap">
+            <canvas id="priceChart"></canvas>
+          </div>
+        </section>
+      </div>
+
+      <div class="layout-bottom">
+        <section class="card">
+          <div class="panel-head light">Team A Live Game</div>
+          <div class="card-body team-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Oranges</th>
+                  <th>Lemons</th>
+                </tr>
+              </thead>
+              <tbody id="teamABody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="panel-head light">Team B Live Game</div>
+          <div class="card-body team-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Oranges</th>
+                  <th>Lemons</th>
+                </tr>
+              </thead>
+              <tbody id="teamBBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="setupOverlay" class="setup-overlay">
+    <section class="setup-card">
+      <h1>Session Setup</h1>
+      <p class="setup-subtitle">Choose mode and timing settings before starting the next run.</p>
+      <div class="setup-grid">
+        <label class="setup-field">
+          <span>Game Length (min)</span>
+          <input id="setupGameMinutes" type="number" min="5" step="1" value="60">
+        </label>
+        <label class="setup-field">
+          <span>Tick Size (sec)</span>
+          <input id="setupTickSeconds" type="number" min="1" step="1" value="30">
+        </label>
+        <label class="setup-field">
+          <span>Real Duration (min)</span>
+          <input id="setupRealMinutes" type="number" min="1" step="1" value="12">
+        </label>
+      </div>
+      <div class="setup-mode">
+        <span class="setup-mode-label">Mode</span>
+        <label class="option">
+          <input id="setupModeSimulation" type="radio" name="setupMode" value="simulation" checked>
+          Real Simulation
+        </label>
+        <label class="option">
+          <input id="setupModePractice" type="radio" name="setupMode" value="practice">
+          Practice (Live P&amp;L + Positions)
+        </label>
+      </div>
+      <p id="setupError" class="setup-error"></p>
+      <button id="startSessionBtn" class="setup-start-btn" type="button">Start Session</button>
+    </section>
+  </div>
+
+  <script>
+    const DEFAULT_SETTINGS = {
+      totalGameSeconds: 60 * 60,
+      tickGameSeconds: 30,
+      realDurationSeconds: 12 * 60
+    };
+
+    const CONFIG = {
+      ...DEFAULT_SETTINGS,
+      baseRates: {
+        aOranges: 0.036,
+        aLemons: 0.057,
+        bOranges: 0.042,
+        bLemons: 0.067
+      },
+      rateRandomizationPct: 0.15,
+      rates: null,
+      totalTicks: 0,
+      tickRealMs: 0
+    };
+
+    applyTimingSettings(DEFAULT_SETTINGS);
+
+    const MARKET_DEFS = [
+      {
+        id: "powA",
+        label: "2^Team A Oranges",
+        launchMinute: 0,
+        expiryMinute: 45,
+        payoff: c => Math.pow(2, c.aOranges),
+        pricing: ({ counts, remainTicks, rates }) => {
+          // X = observed_oranges + Poisson(lambda_remaining), so E[2^X] = 2^observed * exp(lambda_remaining).
+          return Math.pow(2, counts.aOranges) * Math.exp(remainTicks * rates.aOranges);
+        }
+      },
+      {
+        id: "aLMinusBO",
+        label: "Team A Lemons - Team B Oranges",
+        launchMinute: 0,
+        expiryMinute: 60,
+        payoff: c => c.aLemons - c.bOranges
+      },
+      {
+        id: "totalDiff",
+        label: "(A_or+B_or)-(A_le+B_le)",
+        launchMinute: 10,
+        expiryMinute: 35,
+        payoff: c => (c.aOranges + c.bOranges) - (c.aLemons + c.bLemons)
+      },
+      {
+        id: "bLPlusAO",
+        label: "Team B Lemons + Team A Oranges",
+        launchMinute: 18,
+        expiryMinute: 50,
+        payoff: c => c.bLemons + c.aOranges
+      },
+      {
+        id: "aOMinusBL",
+        label: "Team A Oranges - Team B Lemons",
+        launchMinute: 24,
+        expiryMinute: 54,
+        payoff: c => c.aOranges - c.bLemons
+      },
+      {
+        id: "totalOranges",
+        label: "Team A Oranges + Team B Oranges",
+        launchMinute: 30,
+        expiryMinute: 60,
+        payoff: c => c.aOranges + c.bOranges
+      },
+      {
+        id: "totalLemons",
+        label: "Team A Lemons + Team B Lemons",
+        launchMinute: 36,
+        expiryMinute: 60,
+        payoff: c => c.aLemons + c.bLemons
+      },
+      {
+        id: "aOMinusBO",
+        label: "Team A Oranges - Team B Oranges",
+        launchMinute: 42,
+        expiryMinute: 60,
+        payoff: c => c.aOranges - c.bOranges
+      },
+      {
+        id: "mixLate",
+        label: "Late Spread (Total Oranges - Total Lemons)",
+        launchMinute: 48,
+        expiryMinute: 60,
+        payoff: c => (c.aOranges + c.bOranges) - (c.aLemons + c.bLemons)
+      }
+    ];
+
+    const historyTab = document.getElementById("historyTab");
+    const liveTab = document.getElementById("liveTab");
+    const historyPage = document.getElementById("historyPage");
+    const gamePage = document.getElementById("gamePage");
+
+    const historyBody = document.getElementById("historyBody");
+
+    const timerEl = document.getElementById("timer");
+    const statusEl = document.getElementById("status");
+    const finalHud = document.getElementById("finalHud");
+    const finalPnlText = document.getElementById("finalPnlText");
+    const playAgainBtn = document.getElementById("playAgainBtn");
+
+    const buyMultiplierBtn = document.getElementById("buyMultiplier");
+    const sellMultiplierBtn = document.getElementById("sellMultiplier");
+    const buyPx = document.getElementById("buyPx");
+    const sellPx = document.getElementById("sellPx");
+
+    const marketsBody = document.getElementById("marketsBody");
+    const tradesBody = document.getElementById("tradesBody");
+    const teamABody = document.getElementById("teamABody");
+    const teamBBody = document.getElementById("teamBBody");
+
+    const chart = document.getElementById("priceChart");
+    const chartCtx = chart.getContext("2d");
+
+    const practicePanel = document.getElementById("practicePanel");
+    const practiceLivePnl = document.getElementById("practiceLivePnl");
+    const practiceMultiplierPos = document.getElementById("practiceMultiplierPos");
+    const practiceSidePositions = document.getElementById("practiceSidePositions");
+
+    const setupOverlay = document.getElementById("setupOverlay");
+    const setupGameMinutes = document.getElementById("setupGameMinutes");
+    const setupTickSeconds = document.getElementById("setupTickSeconds");
+    const setupRealMinutes = document.getElementById("setupRealMinutes");
+    const setupModeSimulation = document.getElementById("setupModeSimulation");
+    const setupModePractice = document.getElementById("setupModePractice");
+    const setupError = document.getElementById("setupError");
+    const startSessionBtn = document.getElementById("startSessionBtn");
+
+    let pastGames = [];
+    let state = null;
+
+    historyTab.addEventListener("click", () => openPage("history"));
+    liveTab.addEventListener("click", () => {
+      openPage("live");
+      if (!state.running && !state.finished) {
+        startGame();
+      }
+    });
+
+    buyMultiplierBtn.addEventListener("click", () => tradeMultiplier("BUY"));
+    sellMultiplierBtn.addEventListener("click", () => tradeMultiplier("SELL"));
+    playAgainBtn.addEventListener("click", showSetupOverlay);
+    startSessionBtn.addEventListener("click", startSessionFromSetup);
+
+    window.addEventListener("resize", drawChart);
+
+    resetSession("simulation");
+    showSetupOverlay();
+
+    function createInitialState(mode) {
+      return {
+        mode,
+        running: false,
+        finished: false,
+        historyLocked: false,
+        tick: 0,
+        timerId: null,
+        cash: 0,
+        multiplierPosition: 0,
+        multiplierPrice: roundPrice(openingMultiplierEV()),
+        finalMultiplier: null,
+        trades: [],
+        counts: {
+          aOranges: 0,
+          aLemons: 0,
+          bOranges: 0,
+          bLemons: 0
+        },
+        teamA: [{ tick: 0, oranges: 0, lemons: 0, orangeNew: false, lemonNew: false }],
+        teamB: [{ tick: 0, oranges: 0, lemons: 0, orangeNew: false, lemonNew: false }],
+        priceSeries: [],
+        marketQueue: MARKET_DEFS.map(def => ({
+          ...def,
+          launchTick: (def.launchMinute * 60) / CONFIG.tickGameSeconds,
+          expiryTick: (def.expiryMinute * 60) / CONFIG.tickGameSeconds,
+          launched: false
+        })),
+        sideMarkets: []
+      };
+    }
+
+    function applyTimingSettings({ totalGameSeconds, tickGameSeconds, realDurationSeconds }) {
+      CONFIG.totalGameSeconds = totalGameSeconds;
+      CONFIG.tickGameSeconds = tickGameSeconds;
+      CONFIG.realDurationSeconds = realDurationSeconds;
+      CONFIG.totalTicks = CONFIG.totalGameSeconds / CONFIG.tickGameSeconds;
+      CONFIG.tickRealMs = (CONFIG.realDurationSeconds * 1000) / CONFIG.totalTicks;
+    }
+
+    function resetSession(mode) {
+      if (state && state.timerId) {
+        clearInterval(state.timerId);
+      }
+
+      CONFIG.rates = randomizeRates(CONFIG.baseRates, CONFIG.rateRandomizationPct);
+      pastGames = generatePastGames(20);
+      state = createInitialState(mode);
+
+      historyTab.classList.remove("locked");
+      finalHud.style.display = "none";
+      finalHud.classList.remove("loss");
+      setStatus("Waiting");
+      openPage("history");
+      renderHistory();
+      updatePrices({ opening: true });
+      state.priceSeries = [{ tick: 0, price: state.multiplierPrice }];
+      renderGame();
+    }
+
+    function showSetupOverlay() {
+      if (state && state.running) {
+        clearInterval(state.timerId);
+        state.running = false;
+        state.timerId = null;
+      }
+
+      setupError.textContent = "";
+      setupGameMinutes.value = String(CONFIG.totalGameSeconds / 60);
+      setupTickSeconds.value = String(CONFIG.tickGameSeconds);
+      setupRealMinutes.value = String(CONFIG.realDurationSeconds / 60);
+
+      const currentMode = state && state.mode === "practice" ? "practice" : "simulation";
+      setupModeSimulation.checked = currentMode === "simulation";
+      setupModePractice.checked = currentMode === "practice";
+
+      setupOverlay.classList.remove("hidden");
+    }
+
+    function hideSetupOverlay() {
+      setupOverlay.classList.add("hidden");
+    }
+
+    function startSessionFromSetup() {
+      const gameMinutes = Number(setupGameMinutes.value);
+      const tickSeconds = Number(setupTickSeconds.value);
+      const realMinutes = Number(setupRealMinutes.value);
+
+      if (!Number.isFinite(gameMinutes) || gameMinutes <= 0 || !Number.isFinite(tickSeconds) || tickSeconds <= 0 || !Number.isFinite(realMinutes) || realMinutes <= 0) {
+        setupError.textContent = "All timing inputs must be positive numbers.";
+        return;
+      }
+
+      const totalGameSeconds = Math.round(gameMinutes * 60);
+      const tickGameSeconds = Math.round(tickSeconds);
+      const realDurationSeconds = Math.round(realMinutes * 60);
+
+      if (tickGameSeconds > totalGameSeconds) {
+        setupError.textContent = "Tick size must be less than or equal to total game length.";
+        return;
+      }
+
+      if (totalGameSeconds % tickGameSeconds !== 0) {
+        setupError.textContent = "Game length must be divisible by tick size (in seconds).";
+        return;
+      }
+
+      const mode = setupModePractice.checked ? "practice" : "simulation";
+      applyTimingSettings({
+        totalGameSeconds,
+        tickGameSeconds,
+        realDurationSeconds
+      });
+      resetSession(mode);
+      hideSetupOverlay();
+    }
+
+    function openPage(name) {
+      if (name === "history" && state.historyLocked) {
+        return;
+      }
+
+      const showHistory = name === "history";
+      historyPage.classList.toggle("active", showHistory);
+      gamePage.classList.toggle("active", !showHistory);
+      historyTab.classList.toggle("active", showHistory);
+      liveTab.classList.toggle("active", !showHistory);
+
+      if (!showHistory) {
+        requestAnimationFrame(drawChart);
+      }
+    }
+
+    function startGame() {
+      state.running = true;
+      state.historyLocked = true;
+      historyTab.classList.add("locked");
+
+      setStatus("Running", "running");
+      activateDueMarkets();
+      updatePrices({ opening: state.tick === 0 });
+
+      if (state.priceSeries.length === 0) {
+        state.priceSeries.push({ tick: 0, price: state.multiplierPrice });
+      }
+
+      state.timerId = setInterval(stepGame, CONFIG.tickRealMs);
+      renderGame();
+    }
+
+    function stepGame() {
+      if (!state.running) {
+        return;
+      }
+
+      state.tick += 1;
+      const prevA = state.teamA[state.teamA.length - 1];
+      const prevB = state.teamB[state.teamB.length - 1];
+
+      state.counts.aOranges += poisson(CONFIG.rates.aOranges);
+      state.counts.aLemons += poisson(CONFIG.rates.aLemons);
+      state.counts.bOranges += poisson(CONFIG.rates.bOranges);
+      state.counts.bLemons += poisson(CONFIG.rates.bLemons);
+
+      state.teamA.push({
+        tick: state.tick,
+        oranges: state.counts.aOranges,
+        lemons: state.counts.aLemons,
+        orangeNew: state.counts.aOranges > prevA.oranges,
+        lemonNew: state.counts.aLemons > prevA.lemons
+      });
+
+      state.teamB.push({
+        tick: state.tick,
+        oranges: state.counts.bOranges,
+        lemons: state.counts.bLemons,
+        orangeNew: state.counts.bOranges > prevB.oranges,
+        lemonNew: state.counts.bLemons > prevB.lemons
+      });
+
+      activateDueMarkets();
+      settleExpiredMarkets();
+      updatePrices();
+      state.priceSeries.push({ tick: state.tick, price: state.multiplierPrice });
+
+      if (state.tick >= CONFIG.totalTicks) {
+        finishGame();
+        return;
+      }
+
+      renderGame();
+      drawChart();
+    }
+
+    function finishGame() {
+      clearInterval(state.timerId);
+      state.running = false;
+      state.finished = true;
+
+      for (const market of state.sideMarkets) {
+        if (!market.settled) {
+          settleMarket(market);
+        }
+      }
+
+      state.finalMultiplier = actualMultiplier();
+      if (state.multiplierPosition !== 0) {
+        state.cash += state.multiplierPosition * state.finalMultiplier;
+        addTrade("Multiplier", "SETTLE", state.multiplierPosition, state.finalMultiplier);
+        state.multiplierPosition = 0;
+      }
+
+      const finalPnl = roundPrice(state.cash);
+      finalHud.style.display = "block";
+      finalHud.classList.toggle("loss", finalPnl < 0);
+      finalPnlText.textContent = `FINAL P&L: ${formatSigned(finalPnl, 1)}`;
+
+      setStatus("Completed", "done");
+      renderGame();
+      drawChart();
+    }
+
+    function tradeMultiplier(side) {
+      if (!state.running) {
+        return;
+      }
+
+      const price = state.multiplierPrice;
+      if (side === "BUY") {
+        state.multiplierPosition += 1;
+        state.cash -= price;
+      } else {
+        state.multiplierPosition -= 1;
+        state.cash += price;
+      }
+
+      addTrade("Multiplier", side, 1, price);
+      renderTrades();
+    }
+
+    function tradeSideMarket(id, side) {
+      if (!state.running) {
+        return;
+      }
+
+      const market = state.sideMarkets.find(m => m.id === id);
+      if (!market || market.settled || market.traded) {
+        return;
+      }
+
+      if (side === "BUY") {
+        market.position = 1;
+        state.cash -= market.price;
+      } else {
+        market.position = -1;
+        state.cash += market.price;
+      }
+
+      market.traded = true;
+      addTrade(market.label, side, 1, market.price);
+      renderMarkets();
+      renderTrades();
+    }
+
+    function activateDueMarkets() {
+      let spawned = false;
+      for (const def of state.marketQueue) {
+        if (def.launched || state.tick < def.launchTick) {
+          continue;
+        }
+
+        def.launched = true;
+        const market = {
+          id: `${def.id}-${def.launchTick}`,
+          label: def.label,
+          expiryTick: def.expiryTick,
+          payoff: def.payoff,
+          pricing: def.pricing || null,
+          price: 0,
+          settled: false,
+          traded: false,
+          position: 0,
+          isNew: true
+        };
+
+        // Seed new side markets at their current fair value to avoid launch-time artifacts.
+        const remain = Math.max(0, market.expiryTick - state.tick);
+        market.price = roundPrice(computeSideMarketFairPrice(market, remain));
+        state.sideMarkets.push(market);
+        spawned = true;
+      }
+
+      if (spawned) {
+        state.sideMarkets.sort((a, b) => a.expiryTick - b.expiryTick);
+      }
+    }
+
+    function settleExpiredMarkets() {
+      for (const market of state.sideMarkets) {
+        if (!market.settled && state.tick >= market.expiryTick) {
+          settleMarket(market);
+        }
+      }
+    }
+
+    function settleMarket(market) {
+      const settlePrice = roundPrice(market.payoff(state.counts));
+      market.price = settlePrice;
+      market.settled = true;
+
+      if (market.position !== 0) {
+        state.cash += market.position * settlePrice;
+        addTrade(market.label, "SETTLE", market.position, settlePrice);
+        market.position = 0;
+      }
+    }
+
+    function projectedCounts(remainTicks) {
+      return {
+        aOranges: state.counts.aOranges + remainTicks * CONFIG.rates.aOranges,
+        aLemons: state.counts.aLemons + remainTicks * CONFIG.rates.aLemons,
+        bOranges: state.counts.bOranges + remainTicks * CONFIG.rates.bOranges,
+        bLemons: state.counts.bLemons + remainTicks * CONFIG.rates.bLemons
+      };
+    }
+
+    function computeSideMarketFairPrice(market, remainTicks) {
+      const projected = projectedCounts(remainTicks);
+      return market.pricing
+        ? market.pricing({
+            counts: state.counts,
+            projected,
+            remainTicks,
+            rates: CONFIG.rates
+          })
+        : market.payoff(projected);
+    }
+
+    function laggedNoisyPrice(currentPrice, fairPrice, floor = null) {
+      const updated = currentPrice + (fairPrice - currentPrice) * 0.25 + gaussian() * Math.max(0.5, Math.abs(fairPrice) * 0.015);
+      if (floor == null) {
+        return updated;
+      }
+      return Math.max(floor, updated);
+    }
+
+    function updatePrices({ opening = false } = {}) {
+      const fair = expectedMultiplier();
+      if (opening && state.tick === 0) {
+        state.multiplierPrice = roundPrice(Math.max(1, fair));
+      } else {
+        state.multiplierPrice = roundPrice(laggedNoisyPrice(state.multiplierPrice, fair, 1));
+      }
+
+      for (const market of state.sideMarkets) {
+        if (market.settled) {
+          continue;
+        }
+
+        const remain = Math.max(0, market.expiryTick - state.tick);
+        const fairSidePrice = computeSideMarketFairPrice(market, remain);
+        market.price = roundPrice(laggedNoisyPrice(market.price, fairSidePrice));
+      }
+    }
+
+    function renderHistory() {
+      historyBody.innerHTML = "";
+      for (const row of pastGames) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.game}</td>
+          <td>${row.aOranges}</td>
+          <td>${row.aLemons}</td>
+          <td>${row.bOranges}</td>
+          <td>${row.bLemons}</td>
+        `;
+        historyBody.appendChild(tr);
+      }
+    }
+
+    function renderGame() {
+      timerEl.textContent = formatClock((CONFIG.totalTicks - state.tick) * CONFIG.tickGameSeconds);
+
+      buyPx.textContent = formatNumber(state.multiplierPrice, 1);
+      sellPx.textContent = formatNumber(state.multiplierPrice, 1);
+
+      const disableTrading = !state.running;
+      buyMultiplierBtn.disabled = disableTrading;
+      sellMultiplierBtn.disabled = disableTrading;
+
+      renderMarkets();
+      renderTrades();
+      renderTeamTable(teamABody, state.teamA);
+      renderTeamTable(teamBBody, state.teamB);
+      renderPracticePanel();
+    }
+
+    function currentLivePnl() {
+      let markedValue = state.multiplierPosition * state.multiplierPrice;
+      for (const market of state.sideMarkets) {
+        if (market.position !== 0) {
+          markedValue += market.position * market.price;
+        }
+      }
+      return roundPrice(state.cash + markedValue);
+    }
+
+    function renderPracticePanel() {
+      const inPracticeMode = state.mode === "practice";
+      practicePanel.classList.toggle("active", inPracticeMode);
+      if (!inPracticeMode) {
+        return;
+      }
+
+      const livePnl = currentLivePnl();
+      practiceLivePnl.textContent = formatSigned(livePnl, 2);
+      practiceLivePnl.classList.toggle("positive", livePnl >= 0);
+      practiceLivePnl.classList.toggle("negative", livePnl < 0);
+
+      practiceMultiplierPos.textContent = `${state.multiplierPosition >= 0 ? "+" : ""}${state.multiplierPosition}`;
+
+      const openSidePositions = state.sideMarkets.filter(market => market.position !== 0);
+      practiceSidePositions.textContent = openSidePositions.length === 0
+        ? "None"
+        : openSidePositions.map(market => `${market.label} (${market.position > 0 ? "+1" : "-1"})`).join(" | ");
+    }
+
+    function renderMarkets() {
+      marketsBody.innerHTML = "";
+      const visibleMarkets = state.sideMarkets.filter(m => !m.traded);
+
+      if (visibleMarkets.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = "<td colspan=\"4\" class=\"locked-text\">No markets available right now.</td>";
+        marketsBody.appendChild(tr);
+        return;
+      }
+
+      for (const market of visibleMarkets) {
+        const tr = document.createElement("tr");
+        if (market.isNew) {
+          tr.classList.add("market-pop");
+        }
+
+        const expiry = market.settled
+          ? "Expired"
+          : formatClock((market.expiryTick - state.tick) * CONFIG.tickGameSeconds);
+
+        let action = "<span class=\"locked-text\">Closed</span>";
+        if (state.running && !market.settled) {
+          action = `
+            <button class="btn-mini buy" data-id="${market.id}" data-side="BUY">Buy</button>
+            <button class="btn-mini sell" data-id="${market.id}" data-side="SELL">Sell</button>
+          `;
+        }
+
+        tr.innerHTML = `
+          <td>${market.label}</td>
+          <td>${expiry}</td>
+          <td>${formatNumber(market.price, 2)}</td>
+          <td>${action}</td>
+        `;
+
+        marketsBody.appendChild(tr);
+        market.isNew = false;
+      }
+
+      marketsBody.querySelectorAll("button[data-id]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          tradeSideMarket(btn.dataset.id, btn.dataset.side);
+        });
+      });
+    }
+
+    function renderTrades() {
+      tradesBody.innerHTML = "";
+      for (const trade of state.trades.slice(0, 120)) {
+        const tr = document.createElement("tr");
+        const cls = trade.side === "BUY" ? "side-buy" : trade.side === "SELL" ? "side-sell" : "side-settle";
+
+        tr.innerHTML = `
+          <td>${trade.instrument}</td>
+          <td class="${cls}">${trade.side}</td>
+          <td>${trade.qty}</td>
+          <td>${formatNumber(trade.price, 2)}</td>
+          <td>${trade.clock}</td>
+        `;
+
+        tradesBody.appendChild(tr);
+      }
+    }
+
+    function renderTeamTable(tbody, rows) {
+      tbody.innerHTML = "";
+      const recent = rows.slice(-12);
+      for (const row of recent) {
+        const orangeClass = row.orangeNew ? "flash-cell" : "";
+        const lemonClass = row.lemonNew ? "flash-cell" : "";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${formatClock(row.tick * CONFIG.tickGameSeconds)}</td>
+          <td class="${orangeClass}">${row.oranges}</td>
+          <td class="${lemonClass}">${row.lemons}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function drawChart() {
+      const rect = chart.getBoundingClientRect();
+      if (rect.width < 10 || rect.height < 10) {
+        return;
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      chart.width = Math.floor(rect.width * dpr);
+      chart.height = Math.floor(rect.height * dpr);
+      chartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const width = rect.width;
+      const height = rect.height;
+
+      chartCtx.clearRect(0, 0, width, height);
+
+      const pad = { l: 42, r: 10, t: 10, b: 28 };
+      const plotW = width - pad.l - pad.r;
+      const plotH = height - pad.t - pad.b;
+
+      chartCtx.strokeStyle = "#e6e9ef";
+      chartCtx.lineWidth = 1;
+      for (let i = 0; i <= 5; i += 1) {
+        const y = pad.t + (plotH / 5) * i;
+        chartCtx.beginPath();
+        chartCtx.moveTo(pad.l, y);
+        chartCtx.lineTo(width - pad.r, y);
+        chartCtx.stroke();
+      }
+
+      if (state.priceSeries.length < 2) {
+        return;
+      }
+
+      const prices = state.priceSeries.map(p => p.price);
+      const yRange = computeAdaptiveYRange(prices);
+      const min = yRange.min;
+      const max = yRange.max;
+      const span = max - min;
+
+      chartCtx.fillStyle = "#6b7280";
+      chartCtx.font = "11px Trebuchet MS";
+      chartCtx.textAlign = "right";
+      chartCtx.textBaseline = "middle";
+      for (let i = 0; i <= 5; i += 1) {
+        const y = pad.t + (plotH / 5) * i;
+        const v = max - (span / 5) * i;
+        chartCtx.fillText(formatNumber(v, 0), pad.l - 6, y);
+      }
+
+      chartCtx.strokeStyle = "#60a5fa";
+      chartCtx.lineWidth = 2;
+      const domainMaxTick = Math.max(1, state.tick);
+      chartCtx.beginPath();
+      state.priceSeries.forEach((point, index) => {
+        const x = pad.l + (Math.min(point.tick, domainMaxTick) / domainMaxTick) * plotW;
+        const y = pad.t + ((max - point.price) / span) * plotH;
+        if (index === 0) {
+          chartCtx.moveTo(x, y);
+        } else {
+          chartCtx.lineTo(x, y);
+        }
+      });
+      chartCtx.stroke();
+
+      chartCtx.textAlign = "center";
+      chartCtx.textBaseline = "top";
+      const marks = buildChartTimeMarks(domainMaxTick);
+      for (const t of marks) {
+        const x = pad.l + (t / domainMaxTick) * plotW;
+        chartCtx.fillText(formatClock(t * CONFIG.tickGameSeconds).slice(3), x, height - pad.b + 7);
+      }
+    }
+
+    function buildChartTimeMarks(maxTick) {
+      const targetStep = Math.max(1, Math.floor(maxTick / 4));
+      const candidates = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 24, 30];
+      let step = candidates[candidates.length - 1];
+      for (const c of candidates) {
+        if (c >= targetStep) {
+          step = c;
+          break;
+        }
+      }
+
+      const marks = [];
+      for (let t = 0; t <= maxTick; t += step) {
+        marks.push(t);
+      }
+      if (marks[marks.length - 1] !== maxTick) {
+        marks.push(maxTick);
+      }
+      return marks;
+    }
+
+    function computeAdaptiveYRange(prices) {
+      const last = prices[prices.length - 1];
+      const rawMin = Math.min(...prices);
+      const rawMax = Math.max(...prices);
+      const rawSpan = Math.max(0, rawMax - rawMin);
+
+      // Keep a minimum vertical range early so the line is not pinned to chart edges.
+      const minSpan = Math.max(6, Math.abs(last) * 0.12);
+      const workingSpan = Math.max(rawSpan, minSpan);
+
+      // Add dynamic headroom/footroom and bias slightly lower than center.
+      const lowerPad = workingSpan * 0.45;
+      const upperPad = workingSpan * 0.75;
+
+      let min = rawMin - lowerPad;
+      let max = rawMax + upperPad;
+
+      // Early game: anchor around last trade so the first visible segment starts in-chart.
+      if (prices.length < 12) {
+        min = Math.min(min, last - workingSpan * 0.7);
+        max = Math.max(max, last + workingSpan * 0.9);
+      }
+
+      if (min < 0) {
+        min = 0;
+      }
+      if (max <= min) {
+        max = min + 2;
+      }
+
+      return { min, max };
+    }
+
+    function setStatus(label, mode) {
+      statusEl.textContent = label;
+      statusEl.className = "status";
+      if (mode) {
+        statusEl.classList.add(mode);
+      }
+    }
+
+    function addTrade(instrument, side, qty, price) {
+      state.trades.unshift({
+        instrument,
+        side,
+        qty,
+        price,
+        clock: formatClock((CONFIG.totalTicks - state.tick) * CONFIG.tickGameSeconds)
+      });
+    }
+
+    function expectedMultiplierFrom(counts, remainTicks) {
+      const oranges = counts.aOranges + counts.bOranges + remainTicks * (CONFIG.rates.aOranges + CONFIG.rates.bOranges);
+      const lemons = counts.aLemons + counts.bLemons + remainTicks * (CONFIG.rates.aLemons + CONFIG.rates.bLemons);
+      return oranges * lemons;
+    }
+
+    function expectedMultiplier() {
+      const remain = CONFIG.totalTicks - state.tick;
+      return expectedMultiplierFrom(state.counts, remain);
+    }
+
+    function openingMultiplierEV() {
+      return expectedMultiplierFrom({
+        aOranges: 0,
+        aLemons: 0,
+        bOranges: 0,
+        bLemons: 0
+      }, CONFIG.totalTicks);
+    }
+
+    function actualMultiplier() {
+      return (state.counts.aOranges + state.counts.bOranges) * (state.counts.aLemons + state.counts.bLemons);
+    }
+
+    function generatePastGames(count) {
+      return samplePastGames(count);
+    }
+
+    function samplePastGames(count) {
+      const rows = [];
+      for (let i = 0; i < count; i += 1) {
+        const aOranges = poisson(CONFIG.rates.aOranges * CONFIG.totalTicks);
+        const aLemons = poisson(CONFIG.rates.aLemons * CONFIG.totalTicks);
+        const bOranges = poisson(CONFIG.rates.bOranges * CONFIG.totalTicks);
+        const bLemons = poisson(CONFIG.rates.bLemons * CONFIG.totalTicks);
+
+        const totalOranges = aOranges + bOranges;
+        const totalLemons = aLemons + bLemons;
+
+        rows.push({
+          game: `Game ${String(count - i).padStart(2, "0")}`,
+          aOranges,
+          aLemons,
+          bOranges,
+          bLemons,
+          totalOranges,
+          totalLemons,
+          multiplier: totalOranges * totalLemons
+        });
+      }
+      return rows;
+    }
+
+    function formatClock(seconds) {
+      const s = Math.max(0, Math.floor(seconds));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    }
+
+    function formatNumber(value, dp) {
+      return Number(value).toLocaleString(undefined, {
+        minimumFractionDigits: dp,
+        maximumFractionDigits: dp
+      });
+    }
+
+    function formatSigned(value, dp) {
+      return `${value >= 0 ? "+" : ""}${formatNumber(value, dp)}`;
+    }
+
+    function roundPrice(value) {
+      return Math.round(value * 100) / 100;
+    }
+
+    function randomizeRates(baseRates, maxPct) {
+      const minScale = Math.max(0, 1 - maxPct);
+      const maxScale = 1 + maxPct;
+      return Object.fromEntries(
+        Object.entries(baseRates).map(([key, value]) => {
+          const scale = minScale + Math.random() * (maxScale - minScale);
+          return [key, value * scale];
+        })
+      );
+    }
+
+    function poisson(lambda) {
+      if (lambda <= 0) {
+        return 0;
+      }
+
+      if (lambda < 30) {
+        const limit = Math.exp(-lambda);
+        let p = 1;
+        let k = 0;
+        do {
+          k += 1;
+          p *= Math.random();
+        } while (p > limit);
+        return k - 1;
+      }
+
+      const approx = Math.round(lambda + Math.sqrt(lambda) * gaussian());
+      return Math.max(0, approx);
+    }
+
+    function gaussian() {
+      let u = 0;
+      let v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+  </script>
+</body>
+</html>
